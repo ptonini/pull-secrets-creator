@@ -14,7 +14,8 @@ ENV VERSION="0.0.0"
 # x-release-please-end
 
 COPY --from=build /app/serverd /
-COPY --from=build /config/config.yaml /
+COPY --from=build /config /
+COPY --from=build /config/config.yaml /config/config.yaml
 
 EXPOSE 8443
 
