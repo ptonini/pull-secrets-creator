@@ -56,8 +56,8 @@ func validationReviewer(ctx context.Context, ar admissionv1.AdmissionReview) (*a
 
 	for _, i := range pod.Spec.ImagePullSecrets {
 		if val, ok := config.ImagePullSecret[i.Name]; ok {
-			secret, _ := clientSet.CoreV1().Secrets(namespace).Get(ctx, i.Name, metav1.GetOptions{})
-			if secret == nil || secret.Name == "" {
+			_, err = clientSet.CoreV1().Secrets(namespace).Get(ctx, i.Name, metav1.GetOptions{})
+			if err != nil {
 				log.Printf("Adding secret %s on %s", i.Name, namespace)
 				_, err = clientSet.CoreV1().Secrets(namespace).Create(ctx, &corev1.Secret{
 					TypeMeta: metav1.TypeMeta{},
