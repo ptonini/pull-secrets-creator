@@ -18,39 +18,24 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-package main
+package kac
 
 import (
-	"flag"
-	"github.com/fsnotify/fsnotify"
-	"github.com/spf13/viper"
-	"log"
+	"net/http"
 
-	"github.com/ptonini/pull-secrets-creator/kac"
+	"github.com/gin-gonic/gin"
 )
 
-func main() {
-	var tlsKey, tlsCert, configFile string
-	flag.StringVar(&tlsKey, "tlsKey", "/certs/tls.key", "Path to the TLS key")
-	flag.StringVar(&tlsCert, "tlsCert", "/certs/tls.crt", "Path to the TLS certificate")
-	flag.StringVar(&configFile, "configFile", "/config/config.yaml", "Path to the TLS certificate")
-	flag.Parse()
+func Health(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
 
-	err := kac.LoadConfig(configFile)
-	if err != nil {
-		log.Fatal(err)
-	}
+// Mutate -
+func Mutate(c *gin.Context) {
+	serve(c, mutationReviewer)
+}
 
-	viper.OnConfigChange(func(in fsnotify.Event) {
-		err = kac.LoadConfig(configFile)
-		if err != nil {
-			log.Fatal(err)
-		}
-	})
-
-	viper.WatchConfig()
-
-	log.Printf("Server started")
-	router := kac.NewRouter()
-	log.Fatal(router.RunTLS(":8443", tlsCert, tlsKey))
+// Validate -
+func Validate(c *gin.Context) {
+	serve(c, validationReviewer)
 }

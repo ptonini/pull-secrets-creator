@@ -18,39 +18,42 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-package main
+package kac
 
 import (
-	"flag"
-	"github.com/fsnotify/fsnotify"
+	"encoding/json"
 	"github.com/spf13/viper"
 	"log"
-
-	"github.com/ptonini/pull-secrets-creator/kac"
+	"path/filepath"
+	"strings"
 )
 
-func main() {
-	var tlsKey, tlsCert, configFile string
-	flag.StringVar(&tlsKey, "tlsKey", "/certs/tls.key", "Path to the TLS key")
-	flag.StringVar(&tlsCert, "tlsCert", "/certs/tls.crt", "Path to the TLS certificate")
-	flag.StringVar(&configFile, "configFile", "/config/config.yaml", "Path to the TLS certificate")
-	flag.Parse()
+type Config struct {
+	ImagePullSecret map[string][]byte
+}
 
-	err := kac.LoadConfig(configFile)
-	if err != nil {
-		log.Fatal(err)
+func LoadConfig(configFile string) error {
+	log.Printf("Loding config")
+	return readConfig(configFile)
+}
+
+func readConfig(configFile string) error {
+	viper.SetConfigName(strings.Split(filepath.Base(configFile), ".")[0])
+	viper.AddConfigPath(filepath.Dir(configFile))
+	viper.MustBindEnv("imagepullsecret", "IMAGE_PULL_SECRETS")
+	return viper.ReadInConfig()
+}
+
+func getConfig() (*Config, error) {
+	var config Config
+	var err error
+	switch viper.Get("imagepullsecret").(type) {
+	case string:
+		i := viper.GetString("imagepullsecret")
+		err = json.Unmarshal([]byte(i), &config.ImagePullSecret)
+	default:
+		i, _ := json.Marshal(viper.GetStringMapString("imagepullsecret"))
+		err = json.Unmarshal(i, &config.ImagePullSecret)
 	}
-
-	viper.OnConfigChange(func(in fsnotify.Event) {
-		err = kac.LoadConfig(configFile)
-		if err != nil {
-			log.Fatal(err)
-		}
-	})
-
-	viper.WatchConfig()
-
-	log.Printf("Server started")
-	router := kac.NewRouter()
-	log.Fatal(router.RunTLS(":8443", tlsCert, tlsKey))
+	return &config, err
 }

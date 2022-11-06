@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kac
+  namespace: example
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kac
+  template:
+    metadata:
+      labels:
+        app: kac
+    spec:
+      containers:
+      - name: kac
+        image: kac
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: "IMAGE_PULL_SECRETS"
+            value: '{"test-credentials": "eyJhdXRocyI6IHsiaHR0cHM6Ly9kb2NrZXIuaW8iOiB7ImF1dGgiOiAiZEdWemREcDBaWE4wWlFvPSJ9fX0K"}'
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 3
+        ports:
+          - containerPort: 8443
+            protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 3
+        volumeMounts:
+          - mountPath: /certs
+            name: certs
+      serviceAccountName: kac
+      volumes:
+        - name: certs
+          secret:
+            secretName: kac-certs
+            
